@@ -1,18 +1,21 @@
 import { Activity, Database, Network, Radar, ShieldCheck, Workflow, type LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getHealth, type HealthCheck } from './api/health'
+import { getModules, type ReconModule } from './api/modules'
 
 function App() {
   const [health, setHealth] = useState<HealthCheck | null>(null)
+  const [modules, setModules] = useState<ReconModule[]>([])
   const [isDegraded, setIsDegraded] = useState(false)
 
   useEffect(() => {
     let isMounted = true
 
-    getHealth()
-      .then((response) => {
+    Promise.all([getHealth(), getModules()])
+      .then(([healthResponse, moduleResponse]) => {
         if (isMounted) {
-          setHealth(response)
+          setHealth(healthResponse)
+          setModules(moduleResponse)
           setIsDegraded(false)
         }
       })
@@ -63,7 +66,7 @@ function App() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard icon={Network} label="Targets" value="0" />
+            <MetricCard icon={Network} label="Modules" value={String(modules.length)} />
             <MetricCard icon={Activity} label="Active Scans" value="0" />
             <MetricCard icon={Workflow} label="Pipelines" value="0" />
           </div>
@@ -83,16 +86,54 @@ function App() {
       </section>
 
       <section className="mx-auto grid w-full max-w-7xl gap-4 px-6 pb-8 md:grid-cols-2 xl:grid-cols-4">
-        {['Asset Inventory', 'Scan Orchestration', 'Finding Triage', 'Report Builder'].map((item) => (
-          <div key={item} className="rounded border border-zinc-800 bg-zinc-900 p-5">
-            <h3 className="text-sm font-semibold text-white">{item}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">Ready for domain implementation.</p>
+        {(modules.length > 0 ? modules.slice(0, 8) : fallbackModules).map((module) => (
+          <div key={module.key} className="rounded border border-zinc-800 bg-zinc-900 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-sm font-semibold text-white">{module.name}</h3>
+              <span className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300">{module.status}</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{module.description}</p>
           </div>
         ))}
       </section>
     </main>
   )
 }
+
+const fallbackModules: ReconModule[] = [
+  {
+    key: 'dashboard',
+    name: 'Dashboard',
+    description: 'Operational overview for scan activity, risk priorities, and attack surface changes.',
+    status: 'foundation',
+    route: '/dashboard',
+    worker_queues: [],
+  },
+  {
+    key: 'asset_discovery',
+    name: 'Asset Discovery',
+    description: 'Discovers domains, subdomains, DNS records, ASN, CIDR, certificates, and third-party assets.',
+    status: 'planned',
+    route: '/assets/discovery',
+    worker_queues: ['scan.discovery'],
+  },
+  {
+    key: 'ai_risk_engine',
+    name: 'AI Risk Engine',
+    description: 'Scores interesting records and explains why they deserve investigation.',
+    status: 'planned',
+    route: '/risk',
+    worker_queues: ['ai.enrichment'],
+  },
+  {
+    key: 'reports',
+    name: 'Reports',
+    description: 'Generates professional JSON, CSV, HTML, and PDF reports.',
+    status: 'planned',
+    route: '/reports',
+    worker_queues: ['reports.render'],
+  },
+]
 
 type MetricCardProps = {
   icon: LucideIcon

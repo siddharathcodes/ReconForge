@@ -20,3 +20,7 @@ Backend: `http://localhost:8000`
 Frontend: `http://localhost:8080`
 
 Health: `http://localhost:8000/api/v1/health`
+
+## Architecture
+
+The product blueprint is maintained in `docs/ARCHITECTURE.md`.
